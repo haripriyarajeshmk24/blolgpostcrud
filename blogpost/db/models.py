@@ -1,6 +1,6 @@
 from sqlalchemy.orm import relationship
 
-from blogpost.db.database import Base
+from db.database import Base
 from sqlalchemy import (
     Integer,
     String,
@@ -11,10 +11,10 @@ from sqlalchemy import (
 
 class User(Base):
     __tablename__ = "user"
-    id = Column(Integer, primary_key=True)
-    username = Column(String(255), nullable=False, unique=True)
-    email = Column(String(255), nullable=False, unique=True)
-    user_status = Column(Boolean, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
 
     post = relationship("Post", back_populates="user")
 
@@ -26,7 +26,7 @@ class Post(Base):
     description = Column(String(255), nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"))
 
-    comments = relationship("Comment", back_populates="owner")
+    comments = relationship("Comment", back_populates="post")
     user = relationship("User", back_populates="post")
 
 

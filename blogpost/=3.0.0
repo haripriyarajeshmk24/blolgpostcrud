@@ -1,0 +1,23 @@
+Collecting python-jose
+  Obtaining dependency information for python-jose from https://files.pythonhosted.org/packages/bd/2d/e94b2f7bab6773c70efc70a61d66e312e1febccd9e0db6b9e0adf58cbad1/python_jose-3.3.0-py2.py3-none-any.whl.metadata
+  Downloading python_jose-3.3.0-py2.py3-none-any.whl.metadata (5.4 kB)
+Collecting ecdsa!=0.15 (from python-jose)
+  Obtaining dependency information for ecdsa!=0.15 from https://files.pythonhosted.org/packages/00/e7/ed3243b30d1bec41675b6394a1daae46349dc2b855cb83be846a5a918238/ecdsa-0.19.0-py2.py3-none-any.whl.metadata
+  Downloading ecdsa-0.19.0-py2.py3-none-any.whl.metadata (29 kB)
+Collecting rsa (from python-jose)
+  Obtaining dependency information for rsa from https://files.pythonhosted.org/packages/49/97/fa78e3d2f65c02c8e1268b9aba606569fe97f6c8f7c2d74394553347c145/rsa-4.9-py3-none-any.whl.metadata
+  Downloading rsa-4.9-py3-none-any.whl.metadata (4.2 kB)
+Collecting pyasn1 (from python-jose)
+  Obtaining dependency information for pyasn1 from https://files.pythonhosted.org/packages/c8/f1/d6a797abb14f6283c0ddff96bbdd46937f64122b8c925cab503dd37f8214/pyasn1-0.6.1-py3-none-any.whl.metadata
+  Using cached pyasn1-0.6.1-py3-none-any.whl.metadata (8.4 kB)
+Collecting six>=1.9.0 (from ecdsa!=0.15->python-jose)
+  Obtaining dependency information for six>=1.9.0 from https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl.metadata
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Downloading python_jose-3.3.0-py2.py3-none-any.whl (33 kB)
+Downloading ecdsa-0.19.0-py2.py3-none-any.whl (149 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 149.3/149.3 kB 2.0 MB/s eta 0:00:00
+Using cached pyasn1-0.6.1-py3-none-any.whl (83 kB)
+Downloading rsa-4.9-py3-none-any.whl (34 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Installing collected packages: six, pyasn1, rsa, ecdsa, python-jose
+Successfully installed ecdsa-0.19.0 pyasn1-0.6.1 python-jose-3.3.0 rsa-4.9 six-1.17.0

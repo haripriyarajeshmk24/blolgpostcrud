@@ -17,16 +17,19 @@ class PostBase(BaseModel):
     description: str| None = None
 
 
+class PostCreate(PostBase):
+    pass
+
 class Post(PostBase):
     id: int
     user_id: int
+    post: list[Comment] = []
 
     class Config:
         orm_mode = True
 
-
 class UserBase(BaseModel):
-    email: str
+    username: str
 
 
 class UserCreate(UserBase):
@@ -41,3 +44,11 @@ class User(UserBase):
 
     class Config:
         orm_mode = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: str | None = None
