@@ -4,7 +4,6 @@ class CommentBase(BaseModel):
     name: str
     description: str| None = None
 
-
 class Comment(CommentBase):
     id: int
     post_id: int
@@ -12,10 +11,10 @@ class Comment(CommentBase):
     class Config:
         orm_mode = True
 
+
 class PostBase(BaseModel):
     name: str
     description: str| None = None
-
 
 class PostCreate(PostBase):
     pass
@@ -28,13 +27,13 @@ class Post(PostBase):
     class Config:
         orm_mode = True
 
+
 class UserBase(BaseModel):
     username: str
 
-
 class UserCreate(UserBase):
     password: str
-
+    role: str = "user"
 
 class User(UserBase):
     id: int

@@ -15,6 +15,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
+    role = Column(String, default="user")
 
     post = relationship("Post", back_populates="user")
 
@@ -36,6 +37,5 @@ class Comment(Base):
     name = Column(String(255), unique=True)
     description = Column(String(255), nullable=False)
     post_id = Column(Integer, ForeignKey("post.id"))
-
 
     post = relationship("Post", back_populates="comments")

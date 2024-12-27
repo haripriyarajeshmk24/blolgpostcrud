@@ -1,22 +1,17 @@
-from pydoc import describe
-
 import schemas
 import logging
-from fastapi import APIRouter, Depends , HTTPException
-from sqlalchemy.orm import Session, joinedload
-from db.database import get_db, create_access_token
+from sqlalchemy.orm import joinedload
+from db.database import get_db
 from db import models
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from schemas import Token
 from schemas import UserCreate, User
 from jose import jwt
 from jose.exceptions import JWTError
 from fastapi.security import OAuth2PasswordBearer
-from jose import jws
 from sqlalchemy.orm import Session
-from utils import verify_password, get_password_hash, create_access_token, SECRET_KEY, ALGORITHM
+from utils import create_access_token, JWTSECRET, JWTALGORITHM
 from schemas import TokenData
 
 from utils import get_password_hash, verify_password
@@ -45,7 +40,7 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, JWTSECRET, algorithms=[JWTALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -56,7 +51,6 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     if user is None:
         raise credentials_exception
     return user
-
 
 @app.post("/token")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -81,37 +75,56 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         username=user.username,
         hashed_password=hashed_password,
         is_active=True,
+        role=user.role
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     access_token = create_access_token(data={"sub": db_user.username})
-
     return {"access_token": access_token, "token_type": "bearer"}
-
-@app.get("/users")
-def get_all_users(db: Session = Depends(get_db)):
-    try:
-        users = (
-            db.query(models.User).options(joinedload(models.User.post)).all()
-        )
-        return {"status": "success", "response": users}
-    except Exception as e:
-        logging.error("Exception occurred. Cannot list the users", exc_info=True)
 
 @app.get("/current_user", response_model=User)
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-@app.get("/posts")
-def get_all_posts(db: Session = Depends(get_db)):
+@app.get("/users")
+def get_all_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
-        posts = (
-            db.query(models.Post).options(joinedload(models.Post.comments)).all()
+        if current_user.role == "admin":
+            users = db.query(models.User).options(joinedload(models.User.post)).all()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="UnAuthorized, Only admin can access user list"
+            )
+        return {"status": "success", "response": users}
+    except Exception as e:
+        logging.error(f"Error occurred: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while loading the users: {str(e)}"
         )
+
+@app.get("/posts")
+def get_all_posts(db: Session = Depends(get_db),current_user: models.User = Depends(get_current_user)):
+    try:
+        print(current_user.role)
+        if current_user.role == "user":
+            posts = (
+                db.query(models.Post).options(joinedload(models.Post.comments))
+                .filter(models.Post.user_id == current_user.id) .all()
+            )
+        else:
+            posts = (
+                db.query(models.Post).options(joinedload(models.Post.comments)).all()
+            )
         return {"status": "success", "response": posts}
     except Exception as e:
-        logging.error("Exception occurred. Cannot list the items", exc_info=True)
+        logging.error(f"Error occurred: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while loading the posts: {str(e)}"
+        )
 
 @app.post("/users/{user_id}/posts", status_code=201)
 def create_post_for_user(user_id: int,post: schemas.PostCreate, db: Session = Depends(get_db)):
@@ -124,10 +137,13 @@ def create_post_for_user(user_id: int,post: schemas.PostCreate, db: Session = De
         db.commit()
         db.refresh(db_item)
         return {"status": "success", "response": db_item}
-    except:
+    except Exception as e:
         db.rollback()
-        logging.error("Item cannot be updated!", exc_info=True)
-        return {"status": "failed", "response": "Item cannot be updated!"}
+        logging.error(f"Error occurred: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while creating the post: {str(e)}"
+        )
 
 @app.get("/comments")
 def get_all_comments(db: Session = Depends(get_db)):
@@ -137,7 +153,11 @@ def get_all_comments(db: Session = Depends(get_db)):
         )
         return {"status": "success", "response": comments}
     except Exception as e:
-        logging.error("Exception occurred. Cannot list the comments", exc_info=True)
+        logging.error(f"Error occurred: {str(e)}", exc_info=True)
+        raise  HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while loading the comments: {str(e)}"
+        )
 
 @app.post("/posts/{post_id}/comment", status_code=201)
 def create_comment_for_post(post_id: int,comment: schemas.CommentBase, db: Session = Depends(get_db)):
@@ -150,7 +170,10 @@ def create_comment_for_post(post_id: int,comment: schemas.CommentBase, db: Sessi
         db.commit()
         db.refresh(db_comment)
         return {"status": "success", "response": db_comment}
-    except:
+    except Exception as e:
         db.rollback()
-        logging.error("Comment cannot be updated!", exc_info=True)
-        return {"status": "failed", "response": "Comment cannot be updated!"}
+        logging.error(f"Error occurred: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while creating the comment: {str(e)}"
+        )
