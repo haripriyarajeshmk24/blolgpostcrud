@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from utils import create_access_token, JWTSECRET, JWTALGORITHM
 from schemas import TokenData
 
-from utils import get_password_hash, verify_password
+from utils import get_password_hash, verify_password, JWTBearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
@@ -87,6 +87,22 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
+class PermissionChecker:
+
+    def __init__(self, required_permissions: list[str]) -> None:
+        self.required_permissions = required_permissions
+
+    def __call__(self, user: User = Depends(get_current_user)) -> bool:
+        for r_perm in self.required_permissions:
+            if r_perm not in user.permissions:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='Permissions'
+                )
+        return True
+
+
 @app.get("/users")
 def get_all_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
@@ -105,7 +121,7 @@ def get_all_users(db: Session = Depends(get_db), current_user: models.User = Dep
             detail=f"An error occurred while loading the users: {str(e)}"
         )
 
-@app.get("/posts")
+@app.get("/posts",  dependencies=[Depends(JWTBearer())])
 def get_all_posts(db: Session = Depends(get_db),current_user: models.User = Depends(get_current_user)):
     try:
         print(current_user.role)
@@ -126,16 +142,46 @@ def get_all_posts(db: Session = Depends(get_db),current_user: models.User = Depe
             detail=f"An error occurred while loading the posts: {str(e)}"
         )
 
-@app.post("/users/{user_id}/posts", status_code=201)
-def create_post_for_user(user_id: int,post: schemas.PostCreate, db: Session = Depends(get_db)):
+# @app.post("/users/{user_id}/posts", status_code=201)
+# def create_post_for_user(user_id: int,post: schemas.PostCreate, db: Session = Depends(get_db)):
+#     try:
+#         db_user = db.query(models.User).filter(models.User.id == user_id).first()
+#         if not db_user:
+#             raise HTTPException(status_code=400, detail="User doesn't exist with given ID!")
+#         db_item = models.Post(user_id=user_id, name=post.name, description=post.description)
+#         db.add(db_item)
+#         db.commit()
+#         db.refresh(db_item)
+#         return {"status": "success", "response": db_item}
+#     except Exception as e:
+#         db.rollback()
+#         logging.error(f"Error occurred: {str(e)}", exc_info=True)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"An error occurred while creating the post: {str(e)}"
+#         )
+
+@app.post("/users/{user_id}/posts", status_code=201, dependencies=[Depends(JWTBearer())])
+def create_post_for_user(user_id: int,
+    post: schemas.PostCreate,
+    db: Session = Depends(get_db)):
     try:
         db_user = db.query(models.User).filter(models.User.id == user_id).first()
         if not db_user:
-            raise HTTPException(status_code=400, detail="User doesn't exist with given ID!")
-        db_item = models.Post(user_id=user_id, name=post.name, description=post.description)
+            raise HTTPException(
+                status_code=400,
+                detail="User doesn't exist with given ID!"
+            )
+
+        db_item = models.Post(
+            user_id=user_id,
+            name=post.name,
+            description=post.description
+        )
         db.add(db_item)
         db.commit()
         db.refresh(db_item)
+
         return {"status": "success", "response": db_item}
     except Exception as e:
         db.rollback()
@@ -144,6 +190,7 @@ def create_post_for_user(user_id: int,post: schemas.PostCreate, db: Session = De
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while creating the post: {str(e)}"
         )
+
 
 @app.get("/comments")
 def get_all_comments(db: Session = Depends(get_db)):

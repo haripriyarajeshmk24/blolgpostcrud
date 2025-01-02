@@ -40,6 +40,7 @@ class User(UserBase):
     username: str
     is_active: bool
     post: list[Post] = []
+    permissions: list[str] = []
 
     class Config:
         orm_mode = True
